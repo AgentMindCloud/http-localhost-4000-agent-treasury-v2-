@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+
+<!-- Perplexity Computer Attribution — SEO Meta Tags -->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentTreasury — AI Agent Treasury Simulator</title>
+<meta name="description" content="Simulate treasury management for AI agents. Deploy points to yield protocols, track rewards, and manage a simulated USDC wallet. No real money, no gambling.">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400;500;700&f[]=jetbrains-mono@400;500&display=swap" rel="stylesheet">
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+/* ===== README =====
+   AgentTreasury — AI Agent Treasury Simulator
+   =============================================
+   A single-file web app that simulates treasury management for autonomous AI agents.
+
+   HOW TO RUN:
+   1. Open this HTML file in any modern browser (Chrome, Firefox, Safari, Edge).
+   2. No server required — works offline as a static file.
+   3. Or serve via any static server: `npx serve .` then open http://localhost:3000
+
+   HOW TO TEST:
+   - The wallet starts with 10,000 USDC-equivalent points.
+   - Use "Deploy to Yield" to stake any amount into a simulated protocol (5–15% APY).
+   - The simulation runs compounded hourly. Use the speed controls to fast-forward.
+   - "Withdraw" returns staked points + accrued rewards to the main wallet.
+   - The chart and table update in real time showing balance history.
+   - Toggle dark/light mode via the header icon.
+   - All data is simulated. No real money, no gambling, no betting, no real staking.
+
+   DISCLAIMER:
+   This is a simulation for crypto infrastructure / tooling for AI agents.
+   No real money is involved. No gambling or betting. No real staking or yield.
+   ===== END README ===== */
+
+/* ===== DESIGN TOKENS ===== */
+:root {
+  /* Type scale */
+  --text-xs:   clamp(0.75rem,  0.7rem  + 0.25vw, 0.875rem);
+  --text-sm:   clamp(0.875rem, 0.8rem  + 0.35vw, 1rem);
+  --text-base: clamp(1rem,     0.95rem + 0.25vw, 1.125rem);
+  --text-lg:   clamp(1.125rem, 1rem    + 0.75vw, 1.5rem);
+  --text-xl:   clamp(1.5rem,   1.2rem  + 1.25vw, 2.25rem);
+
+  /* Spacing */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  /* Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  /* Transitions */
+  --transition-interactive: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Fonts */
+  --font-body: 'Satoshi', 'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+
+  /* Content widths */
+  --content-default: 960px;
+  --content-wide: 1200px;
+}
+
+/* Light mode */
+:root, [data-theme="light"] {
+  --color-bg:             #f7f6f2;
+  --color-surface:        #f9f8f5;
+  --color-surface-2:      #ffffff;
+  --color-surface-offset: #f3f0ec;
+  --color-divider:        #dcd9d5;
+  --color-border:         #d4d1ca;
+  --color-text:           #28251d;
+  --color-text-muted:     #7a7974;
+  --color-text-faint:     #bab9b4;
+  --color-text-inverse:   #f9f8f4;
+  --color-primary:        #01696f;
+  --color-primary-hover:  #0c4e54;
+  --color-success:        #437a22;
+  --color-success-bg:     rgba(67, 122, 34, 0.08);
+  --color-warning:        #964219;
+  --color-error:          #a12c7b;
+  --color-gold:           #d19900;
+  --color-gold-bg:        rgba(209, 153, 0, 0.08);
+  --color-blue:           #006494;
+  --color-purple:         #7a39bb;
+  --shadow-sm: 0 1px 2px rgba(40, 37, 29, 0.06);
+  --shadow-md: 0 4px 12px rgba(40, 37, 29, 0.08);
+  --shadow-lg: 0 12px 32px rgba(40, 37, 29, 0.12);
+}
+
+/* Dark mode */
+[data-theme="dark"] {
+  --color-bg:             #111110;
+  --color-surface:        #1a1918;
+  --color-surface-2:      #222120;
+  --color-surface-offset: #1d1c1a;
+  --color-divider:        #2a2928;
+  --color-border:         #393836;
+  --color-text:           #cdccca;
+  --color-text-muted:     #8a8985;
+  --color-text-faint:     #5a5957;
+  --color-text-inverse:   #2b2a28;
+  --color-primary:        #4f98a3;
+  --color-primary-hover:  #6bb1bc;
+  --color-success:        #6daa45;
+  --color-success-bg:     rgba(109, 170, 69, 0.1);
+  --color-warning:        #bb653b;
+  --color-error:          #d163a7;
+  --color-gold:           #e8af34;
+  --color-gold-bg:        rgba(232, 175, 52, 0.08);
+  --color-blue:           #5591c7;
+  --color-purple:         #a86fdf;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-bg:             #111110;
+    --color-surface:        #1a1918;
+    --color-surface-2:      #222120;
+    --color-surface-offset: #1d1c1a;
+    --color-divider:        #2a2928;
+    --color-border:         #393836;
+    --color-text:           #cdccca;
+    --color-text-muted:     #8a8985;
+    --color-text-faint:     #5a5957;
+    --color-text-inverse:   #2b2a28;
+    --color-primary:        #4f98a3;
+    --color-primary-hover:  #6bb1bc;
+    --color-success:        #6daa45;
+    --color-success-bg:     rgba(109, 170, 69, 0.1);
+    --color-warning:        #bb653b;
+    --color-error:          #d163a7;
+    --color-gold:           #e8af34;
+    --color-gold-bg:        rgba(232, 175, 52, 0.08);
+    --color-blue:           #5591c7;
+    --color-purple:         #a86fdf;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+    --shadow-lg: 0 12px 32px rgba(0,0,0,0.4);
+  }
+}
+
+/* ===== BASE RESET ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100dvh;
+  line-height: 1.6;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+img, picture, video, canvas, svg { display: block; max-width: 100%; height: auto; }
+input, button, textarea, select { font: inherit; color: inherit; }
+h1, h2, h3, h4, h5, h6 { text-wrap: balance; line-height: 1.15; }
+p, li, figcaption { text-wrap: pretty; max-width: 72ch; }
+button { cursor: pointer; background: none; border: none; }
+table { border-collapse: collapse; width: 100%; }
+
+a, button, [role="button"], input, textarea, select {
+  transition: color var(--transition-interactive),
+              background var(--transition-interactive),
+              border-color var(--transition-interactive),
+              box-shadow var(--transition-interactive);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+::selection {
+  background: rgba(79, 152, 163, 0.25);
+  color: var(--color-text);
+}
+
+/* ===== LAYOUT ===== */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-divider);
+  background: var(--color-surface);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.app-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.app-logo svg {
+  flex-shrink: 0;
+}
+
+.app-logo-text {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.badge-sim {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-gold);
+  background: var(--color-gold-bg);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.theme-toggle {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+}
+.theme-toggle:hover {
+  background: var(--color-surface-offset);
+  color: var(--color-text);
+}
+
+.app-main {
+  max-width: var(--content-wide);
+  margin: 0 auto;
+  padding: var(--space-6);
+}
+
+/* ===== DISCLAIMER BANNER ===== */
+.disclaimer-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-6);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.disclaimer-banner svg {
+  flex-shrink: 0;
+  color: var(--color-gold);
+}
+
+/* ===== KPI CARDS ===== */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.kpi-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.kpi-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-value {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.02em;
+  font-family: var(--font-body);
+}
+
+.kpi-sub {
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.kpi-value.accent { color: var(--color-primary); }
+.kpi-value.success { color: var(--color-success); }
+.kpi-value.gold { color: var(--color-gold); }
+
+/* ===== CONTENT GRID ===== */
+.content-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+
+/* ===== ACTION PANEL ===== */
+.action-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  align-self: start;
+}
+
+.panel-heading {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.form-label {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-wrapper input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  padding-right: 72px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.input-wrapper input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(79, 152, 163, 0.15);
+}
+
+.input-suffix {
+  position: absolute;
+  right: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.max-btn {
+  font-size: var(--text-xs);
+  color: var(--color-primary);
+  font-weight: 600;
+  align-self: flex-end;
+  padding: var(--space-1) 0;
+}
+.max-btn:hover {
+  color: var(--color-primary-hover);
+}
+
+.protocol-select {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.protocol-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-interactive);
+}
+
+.protocol-option:hover {
+  border-color: var(--color-text-faint);
+}
+
+.protocol-option.selected {
+  border-color: var(--color-primary);
+  background: rgba(79, 152, 163, 0.05);
+}
+
+.protocol-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.protocol-apy {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--color-success);
+}
+
+.protocol-risk {
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-interactive);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+}
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+.btn-outline:hover {
+  border-color: var(--color-text-faint);
+  background: var(--color-surface-offset);
+}
+
+.action-divider {
+  border: none;
+  border-top: 1px solid var(--color-divider);
+}
+
+/* ===== SPEED CONTROLS ===== */
+.speed-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.speed-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.speed-btn-group {
+  display: flex;
+  gap: 2px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  border: 1px solid var(--color-divider);
+}
+
+.speed-btn {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  min-width: 42px;
+  text-align: center;
+}
+
+.speed-btn:hover {
+  color: var(--color-text);
+}
+
+.speed-btn.active {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+/* ===== CHART PANEL ===== */
+.chart-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chart-canvas-wrapper {
+  position: relative;
+  width: 100%;
+  height: 280px;
+}
+
+.chart-canvas-wrapper canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ===== TABLE ===== */
+.table-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.table-heading {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  margin-bottom: var(--space-4);
+}
+
+.positions-table {
+  width: 100%;
+  font-size: var(--text-sm);
+}
+
+.positions-table thead {
+  position: sticky;
+  top: 0;
+}
+
+.positions-table th {
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-divider);
+  background: var(--color-surface);
+}
+
+.positions-table td {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-divider);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.positions-table tr:last-child td {
+  border-bottom: none;
+}
+
+.positions-table .mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.positions-table .apy-cell {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.positions-table .reward-cell {
+  color: var(--color-gold);
+  font-weight: 600;
+}
+
+.withdraw-btn {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-primary);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-primary);
+  background: transparent;
+}
+
+.withdraw-btn:hover {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+  color: var(--color-text-faint);
+  font-size: var(--text-sm);
+}
+
+/* ===== ACTIVITY LOG ===== */
+.log-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+.log-heading {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  margin-bottom: var(--space-4);
+}
+
+.log-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 200px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.log-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.log-time {
+  font-family: var(--font-mono);
+  color: var(--color-text-faint);
+  flex-shrink: 0;
+  min-width: 52px;
+}
+
+.log-msg {
+  color: var(--color-text-muted);
+}
+
+.log-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.log-dot.deploy { background: var(--color-primary); }
+.log-dot.withdraw { background: var(--color-gold); }
+.log-dot.reward { background: var(--color-success); }
+
+/* ===== FOOTER ===== */
+.app-footer {
+  text-align: center;
+  padding: var(--space-6);
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+  border-top: 1px solid var(--color-divider);
+  margin-top: var(--space-8);
+}
+
+.app-footer a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+.app-footer a:hover {
+  color: var(--color-primary);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .app-main {
+    padding: var(--space-4);
+  }
+  .app-header {
+    padding: var(--space-3) var(--space-4);
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .sim-clock {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    padding-top: var(--space-1);
+    border-top: 1px solid var(--color-divider);
+  }
+  .badge-sim {
+    font-size: 0.65rem;
+    padding: 2px var(--space-2);
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-row {
+    grid-template-columns: 1fr;
+  }
+  .speed-controls {
+    flex-wrap: wrap;
+  }
+}
+
+/* ===== TOAST ===== */
+.toast-container {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-xs);
+  box-shadow: var(--shadow-lg);
+  animation: toastIn 300ms ease-out;
+  max-width: 320px;
+  pointer-events: auto;
+}
+
+.toast.fade-out {
+  animation: toastOut 300ms ease-in forwards;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(8px); }
+}
+
+/* Sim clock */
+.sim-clock {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.sim-clock-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-success);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="app-logo">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-label="AgentTreasury logo">
+      <rect x="2" y="2" width="28" height="28" rx="6" stroke="currentColor" stroke-width="2"/>
+      <path d="M10 22V14L16 10L22 14V22" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      <circle cx="16" cy="17" r="3" stroke="currentColor" stroke-width="2"/>
+    </svg>
+    <span class="app-logo-text">AgentTreasury</span>
+  </div>
+  <div class="app-header-actions">
+    <div class="sim-clock">
+      <span class="sim-clock-dot"></span>
+      <span id="simClockDisplay">Day 0, 00:00</span>
+    </div>
+    <span class="badge-sim">Simulation</span>
+    <button class="theme-toggle" data-theme-toggle aria-label="Switch to light mode">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="app-main">
+
+  <!-- Disclaimer -->
+  <div class="disclaimer-banner">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span>Simulation only — no real money, no gambling, no betting, no real staking. All values are USDC-equivalent points for demonstration of AI agent treasury tooling.</span>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <span class="kpi-label">Wallet Balance</span>
+      <span class="kpi-value" id="kpiWallet">10,000.00</span>
+      <span class="kpi-sub">USDC Points</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Total Staked</span>
+      <span class="kpi-value accent" id="kpiStaked">0.00</span>
+      <span class="kpi-sub">Across all protocols</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Pending Rewards</span>
+      <span class="kpi-value gold" id="kpiRewards">0.00</span>
+      <span class="kpi-sub">Accrued yield</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Total Value</span>
+      <span class="kpi-value success" id="kpiTotal">10,000.00</span>
+      <span class="kpi-sub" id="kpiTotalDelta">+0.00%</span>
+    </div>
+  </div>
+
+  <!-- Content Grid: Actions + Chart -->
+  <div class="content-grid">
+    <!-- Action Panel -->
+    <div class="action-panel">
+      <h2 class="panel-heading">Deploy to Yield</h2>
+
+      <div class="form-group">
+        <label class="form-label">Amount</label>
+        <div class="input-wrapper">
+          <input type="number" id="stakeAmount" placeholder="0.00" min="0" step="0.01">
+          <span class="input-suffix">Points</span>
+        </div>
+        <button class="max-btn" id="maxBtn" type="button">Use Max</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Protocol</label>
+        <div class="protocol-select" id="protocolSelect">
+          <div class="protocol-option selected" data-protocol="aave-v3" data-apy="5.2">
+            <div>
+              <div class="protocol-name">Aave V3 (sim)</div>
+              <div class="protocol-risk">Low risk</div>
+            </div>
+            <span class="protocol-apy">5.2% APY</span>
+          </div>
+          <div class="protocol-option" data-protocol="compound-v3" data-apy="8.7">
+            <div>
+              <div class="protocol-name">Compound V3 (sim)</div>
+              <div class="protocol-risk">Medium risk</div>
+            </div>
+            <span class="protocol-apy">8.7% APY</span>
+          </div>
+          <div class="protocol-option" data-protocol="yearn-v3" data-apy="14.3">
+            <div>
+              <div class="protocol-name">Yearn V3 (sim)</div>
+              <div class="protocol-risk">Higher risk</div>
+            </div>
+            <span class="protocol-apy">14.3% APY</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="deployBtn" type="button">Deploy to Yield</button>
+
+      <hr class="action-divider">
+
+      <div class="speed-controls">
+        <span class="speed-label">Sim Speed</span>
+        <div class="speed-btn-group" id="speedGroup">
+          <button class="speed-btn active" data-speed="1">1x</button>
+          <button class="speed-btn" data-speed="10">10x</button>
+          <button class="speed-btn" data-speed="100">100x</button>
+          <button class="speed-btn" data-speed="1000">Max</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart Panel -->
+    <div class="chart-panel">
+      <div class="chart-header">
+        <h2 class="panel-heading">Total Value Over Time</h2>
+      </div>
+      <div class="chart-canvas-wrapper">
+        <canvas id="valueChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Positions Table -->
+  <div class="table-panel">
+    <h2 class="table-heading">Active Positions</h2>
+    <table class="positions-table">
+      <thead>
+        <tr>
+          <th>Protocol</th>
+          <th>Staked</th>
+          <th>APY</th>
+          <th>Pending Rewards</th>
+          <th>Current Value</th>
+          <th>Deployed</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="positionsBody">
+        <tr><td colspan="7" class="empty-state">No active positions. Deploy points to start earning simulated yield.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Activity Log -->
+  <div class="log-panel">
+    <h2 class="log-heading">Activity Log</h2>
+    <ul class="log-list" id="logList">
+      <li class="log-item">
+        <span class="log-dot deploy"></span>
+        <span class="log-time">00:00</span>
+        <span class="log-msg">Wallet initialized with 10,000.00 USDC points</span>
+      </li>
+    </ul>
+  </div>
+
+</main>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Footer -->
+<footer class="app-footer">
+  <p>AgentTreasury is a simulation for crypto infrastructure / tooling for AI agents. No real money involved.</p>
+  <p style="margin-top: var(--space-2);"><a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a></p>
+</footer>
+
+<script>
+// =====================================================================
+// AgentTreasury — Simulation Engine
+// =====================================================================
+
+(function() {
+  'use strict';
+
+  // ===== STATE =====
+  const INITIAL_BALANCE = 10000;
+  let walletBalance = INITIAL_BALANCE;
+  let positions = []; // { id, protocol, apy, principal, rewards, deployedAt (simHour) }
+  let simHour = 0;
+  let simSpeed = 1; // multiplier
+  let selectedProtocol = 'aave-v3';
+  let selectedApy = 5.2;
+  let positionIdCounter = 0;
+  let chartDataPoints = [{ hour: 0, total: INITIAL_BALANCE, wallet: INITIAL_BALANCE, staked: 0, rewards: 0 }];
+
+  // ===== DOM REFS =====
+  const els = {
+    kpiWallet: document.getElementById('kpiWallet'),
+    kpiStaked: document.getElementById('kpiStaked'),
+    kpiRewards: document.getElementById('kpiRewards'),
+    kpiTotal: document.getElementById('kpiTotal'),
+    kpiTotalDelta: document.getElementById('kpiTotalDelta'),
+    stakeAmount: document.getElementById('stakeAmount'),
+    maxBtn: document.getElementById('maxBtn'),
+    deployBtn: document.getElementById('deployBtn'),
+    protocolSelect: document.getElementById('protocolSelect'),
+    speedGroup: document.getElementById('speedGroup'),
+    positionsBody: document.getElementById('positionsBody'),
+    logList: document.getElementById('logList'),
+    toastContainer: document.getElementById('toastContainer'),
+    simClockDisplay: document.getElementById('simClockDisplay'),
+    valueChart: document.getElementById('valueChart'),
+  };
+
+  // ===== FORMAT HELPERS =====
+  function fmt(n) {
+    return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function fmtPct(n) {
+    const sign = n >= 0 ? '+' : '';
+    return sign + n.toFixed(2) + '%';
+  }
+
+  function simTimeStr(hour) {
+    const day = Math.floor(hour / 24);
+    const h = Math.floor(hour % 24);
+    const m = Math.floor((hour % 1) * 60);
+    return `Day ${day}, ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
+  // ===== TOAST =====
+  function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = msg;
+    els.toastContainer.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add('fade-out');
+      setTimeout(() => toast.remove(), 300);
+    }, 2500);
+  }
+
+  // ===== LOG =====
+  function addLog(type, msg) {
+    const li = document.createElement('li');
+    li.className = 'log-item';
+    li.innerHTML = `<span class="log-dot ${type}"></span><span class="log-time">${simTimeStr(simHour)}</span><span class="log-msg">${msg}</span>`;
+    els.logList.prepend(li);
+    // Keep max 50 entries
+    while (els.logList.children.length > 50) {
+      els.logList.lastChild.remove();
+    }
+  }
+
+  // ===== YIELD CALCULATION (hourly compounding) =====
+  function calcRewards(pos, hours) {
+    // APY compounded hourly: hourlyRate = (1 + APY)^(1/8760) - 1
+    const hoursPerYear = 8760;
+    const hourlyRate = Math.pow(1 + pos.apy / 100, 1 / hoursPerYear) - 1;
+    const totalValue = pos.principal * Math.pow(1 + hourlyRate, hours);
+    return totalValue - pos.principal;
+  }
+
+  // ===== UPDATE KPIs =====
+  function updateKPIs() {
+    let totalStaked = 0;
+    let totalRewards = 0;
+
+    positions.forEach(pos => {
+      const hoursElapsed = simHour - pos.deployedAt;
+      pos.rewards = calcRewards(pos, hoursElapsed);
+      totalStaked += pos.principal;
+      totalRewards += pos.rewards;
+    });
+
+    const totalValue = walletBalance + totalStaked + totalRewards;
+    const deltaPct = ((totalValue - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
+
+    els.kpiWallet.textContent = fmt(walletBalance);
+    els.kpiStaked.textContent = fmt(totalStaked);
+    els.kpiRewards.textContent = fmt(totalRewards);
+    els.kpiTotal.textContent = fmt(totalValue);
+    els.kpiTotalDelta.textContent = fmtPct(deltaPct);
+    els.simClockDisplay.textContent = simTimeStr(simHour);
+
+    return { totalValue, totalStaked, totalRewards };
+  }
+
+  // ===== UPDATE TABLE =====
+  function updateTable() {
+    if (positions.length === 0) {
+      els.positionsBody.innerHTML = '<tr><td colspan="7" class="empty-state">No active positions. Deploy points to start earning simulated yield.</td></tr>';
+      return;
+    }
+
+    els.positionsBody.innerHTML = positions.map(pos => {
+      const hoursElapsed = simHour - pos.deployedAt;
+      const rewards = calcRewards(pos, hoursElapsed);
+      const currentValue = pos.principal + rewards;
+      return `
+        <tr>
+          <td class="mono">${pos.protocol}</td>
+          <td class="mono">${fmt(pos.principal)}</td>
+          <td class="apy-cell">${pos.apy.toFixed(1)}%</td>
+          <td class="reward-cell mono">${fmt(rewards)}</td>
+          <td class="mono">${fmt(currentValue)}</td>
+          <td class="mono">${simTimeStr(pos.deployedAt)}</td>
+          <td><button class="withdraw-btn" data-id="${pos.id}">Withdraw</button></td>
+        </tr>
+      `;
+    }).join('');
+
+    // Attach withdraw handlers
+    els.positionsBody.querySelectorAll('.withdraw-btn').forEach(btn => {
+      btn.addEventListener('click', () => withdrawPosition(parseInt(btn.dataset.id)));
+    });
+  }
+
+  // ===== CHART =====
+  const chartCtx = els.valueChart.getContext('2d');
+
+  // Get CSS variable values for chart colors
+  function getCSSVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  let valueChart = new Chart(chartCtx, {
+    type: 'line',
+    data: {
+      labels: ['0h'],
+      datasets: [
+        {
+          label: 'Total Value',
+          data: [INITIAL_BALANCE],
+          borderColor: getCSSVar('--color-primary'),
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.3,
+          fill: false,
+        },
+        {
+          label: 'Wallet',
+          data: [INITIAL_BALANCE],
+          borderColor: getCSSVar('--color-text-faint'),
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderDash: [4, 4],
+          pointRadius: 0,
+          tension: 0.3,
+          fill: false,
+        },
+        {
+          label: 'Staked + Rewards',
+          data: [0],
+          borderColor: getCSSVar('--color-success'),
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.3,
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          align: 'end',
+          labels: {
+            boxWidth: 12,
+            boxHeight: 2,
+            padding: 16,
+            color: getCSSVar('--color-text-muted'),
+            font: { family: "'Satoshi', sans-serif", size: 12 },
+            usePointStyle: false,
+          },
+        },
+        tooltip: {
+          backgroundColor: getCSSVar('--color-surface-2') || '#222120',
+          titleColor: getCSSVar('--color-text') || '#cdccca',
+          bodyColor: getCSSVar('--color-text-muted') || '#8a8985',
+          borderColor: getCSSVar('--color-border') || '#393836',
+          borderWidth: 1,
+          padding: 12,
+          cornerRadius: 8,
+          bodyFont: { family: "'JetBrains Mono', monospace", size: 12 },
+          titleFont: { family: "'Satoshi', sans-serif", size: 13, weight: 600 },
+          callbacks: {
+            title: (items) => simTimeStr(chartDataPoints[items[0].dataIndex]?.hour || 0),
+            label: (item) => `  ${item.dataset.label}: ${fmt(item.raw)}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          display: true,
+          grid: { display: false },
+          ticks: {
+            color: getCSSVar('--color-text-faint'),
+            font: { family: "'Satoshi', sans-serif", size: 11 },
+            maxTicksLimit: 8,
+          },
+        },
+        y: {
+          display: true,
+          grid: {
+            color: getCSSVar('--color-divider'),
+            drawBorder: false,
+          },
+          ticks: {
+            color: getCSSVar('--color-text-faint'),
+            font: { family: "'JetBrains Mono', monospace", size: 11 },
+            callback: (v) => fmt(v),
+          },
+        },
+      },
+    },
+  });
+
+  function updateChartColors() {
+    valueChart.data.datasets[0].borderColor = getCSSVar('--color-primary');
+    valueChart.data.datasets[1].borderColor = getCSSVar('--color-text-faint');
+    valueChart.data.datasets[2].borderColor = getCSSVar('--color-success');
+    valueChart.options.scales.x.ticks.color = getCSSVar('--color-text-faint');
+    valueChart.options.scales.y.ticks.color = getCSSVar('--color-text-faint');
+    valueChart.options.scales.y.grid.color = getCSSVar('--color-divider');
+    valueChart.options.plugins.legend.labels.color = getCSSVar('--color-text-muted');
+    valueChart.update('none');
+  }
+
+  function updateChart(stats) {
+    const maxPoints = 200;
+    const label = `D${Math.floor(simHour / 24)}`;
+
+    chartDataPoints.push({
+      hour: simHour,
+      total: stats.totalValue,
+      wallet: walletBalance,
+      staked: stats.totalStaked + stats.totalRewards,
+      rewards: stats.totalRewards,
+    });
+
+    if (chartDataPoints.length > maxPoints) {
+      chartDataPoints = chartDataPoints.slice(-maxPoints);
+    }
+
+    valueChart.data.labels = chartDataPoints.map((dp) => {
+      const day = Math.floor(dp.hour / 24);
+      const hr = Math.floor(dp.hour % 24);
+      if (dp.hour < 24) return `${Math.floor(dp.hour)}h`;
+      return hr === 0 ? `D${day}` : `D${day} ${hr}h`;
+    });
+    valueChart.data.datasets[0].data = chartDataPoints.map(d => d.total);
+    valueChart.data.datasets[1].data = chartDataPoints.map(d => d.wallet);
+    valueChart.data.datasets[2].data = chartDataPoints.map(d => d.staked);
+    valueChart.update('none');
+  }
+
+  // ===== DEPLOY ACTION =====
+  function deploy() {
+    const amount = parseFloat(els.stakeAmount.value);
+    if (!amount || amount <= 0) {
+      showToast('Enter a valid amount');
+      return;
+    }
+    if (amount > walletBalance) {
+      showToast('Insufficient wallet balance');
+      return;
+    }
+
+    walletBalance -= amount;
+    positionIdCounter++;
+
+    const pos = {
+      id: positionIdCounter,
+      protocol: selectedProtocol,
+      apy: selectedApy,
+      principal: amount,
+      rewards: 0,
+      deployedAt: simHour,
+    };
+    positions.push(pos);
+
+    els.stakeAmount.value = '';
+    addLog('deploy', `Deployed ${fmt(amount)} to ${selectedProtocol} at ${selectedApy}% APY`);
+    showToast(`Deployed ${fmt(amount)} points to ${selectedProtocol}`);
+
+    updateKPIs();
+    updateTable();
+  }
+
+  // ===== WITHDRAW ACTION =====
+  function withdrawPosition(id) {
+    const idx = positions.findIndex(p => p.id === id);
+    if (idx === -1) return;
+
+    const pos = positions[idx];
+    const hoursElapsed = simHour - pos.deployedAt;
+    const rewards = calcRewards(pos, hoursElapsed);
+    const totalReturn = pos.principal + rewards;
+
+    walletBalance += totalReturn;
+    positions.splice(idx, 1);
+
+    addLog('withdraw', `Withdrew ${fmt(totalReturn)} from ${pos.protocol} (${fmt(rewards)} rewards)`);
+    showToast(`Withdrew ${fmt(totalReturn)} points`);
+
+    updateKPIs();
+    updateTable();
+  }
+
+  // ===== PROTOCOL SELECTION =====
+  els.protocolSelect.addEventListener('click', (e) => {
+    const option = e.target.closest('.protocol-option');
+    if (!option) return;
+
+    els.protocolSelect.querySelectorAll('.protocol-option').forEach(el => el.classList.remove('selected'));
+    option.classList.add('selected');
+    selectedProtocol = option.dataset.protocol;
+    selectedApy = parseFloat(option.dataset.apy);
+  });
+
+  // ===== MAX BUTTON =====
+  els.maxBtn.addEventListener('click', () => {
+    els.stakeAmount.value = walletBalance.toFixed(2);
+  });
+
+  // ===== DEPLOY BUTTON =====
+  els.deployBtn.addEventListener('click', deploy);
+
+  // ===== SPEED CONTROLS =====
+  els.speedGroup.addEventListener('click', (e) => {
+    const btn = e.target.closest('.speed-btn');
+    if (!btn) return;
+
+    els.speedGroup.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    simSpeed = parseInt(btn.dataset.speed);
+  });
+
+  // ===== SIMULATION TICK =====
+  const TICK_INTERVAL_MS = 100; // real-time ms per tick
+  const BASE_HOURS_PER_TICK = 0.1; // at 1x speed, advance 0.1 simulated hours per tick (= 6 min)
+
+  let chartUpdateCounter = 0;
+
+  function tick() {
+    const hoursAdvanced = BASE_HOURS_PER_TICK * simSpeed;
+    simHour += hoursAdvanced;
+
+    const stats = updateKPIs();
+
+    // Update chart every ~1 simulated hour
+    chartUpdateCounter += hoursAdvanced;
+    if (chartUpdateCounter >= 1) {
+      chartUpdateCounter = 0;
+      updateChart(stats);
+    }
+
+    // Log periodic reward updates every 24 sim hours
+    if (Math.floor(simHour) % 24 === 0 && Math.floor(simHour) !== Math.floor(simHour - hoursAdvanced)) {
+      if (positions.length > 0) {
+        addLog('reward', `Daily yield accrued: ${fmt(stats.totalRewards)} total pending`);
+      }
+    }
+  }
+
+  // Only update table periodically for performance
+  let tableUpdateCounter = 0;
+  function tableTick() {
+    tableUpdateCounter++;
+    if (tableUpdateCounter % 10 === 0) {
+      updateTable();
+    }
+  }
+
+  setInterval(() => {
+    tick();
+    tableTick();
+  }, TICK_INTERVAL_MS);
+
+  // ===== THEME TOGGLE =====
+  (function() {
+    const t = document.querySelector('[data-theme-toggle]');
+    const r = document.documentElement;
+    let d = r.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    r.setAttribute('data-theme', d);
+    updateToggleIcon();
+
+    t.addEventListener('click', () => {
+      d = d === 'dark' ? 'light' : 'dark';
+      r.setAttribute('data-theme', d);
+      updateToggleIcon();
+      // Update chart colors after theme switch
+      setTimeout(updateChartColors, 50);
+    });
+
+    function updateToggleIcon() {
+      t.setAttribute('aria-label', 'Switch to ' + (d === 'dark' ? 'light' : 'dark') + ' mode');
+      t.innerHTML = d === 'dark'
+        ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
+        : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    }
+  })();
+
+  // ===== ENTER KEY for deploy =====
+  els.stakeAmount.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') deploy();
+  });
+
+  // Initial state
+  updateKPIs();
+  updateTable();
+
+})();
+</script>
+
+</body>
+</html>
